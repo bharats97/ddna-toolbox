@@ -78,6 +78,8 @@ class LongestCommonSubsequence(BaseEstimator):
         self.overwrite = overwrite
         self.threshold = threshold
         self.window = window
+        self.gsa_ = '.gsa'
+        self.mat_ = '.mat'
         if self.window < 2:
             raise ValueError('window parameter cannot be less than 2.')
         self.verbosity = verbosity
@@ -106,8 +108,7 @@ class LongestCommonSubsequence(BaseEstimator):
             Returns self.
         """
         warnings.simplefilter(action='ignore', category=FutureWarning)
-        self.gsa_ = '.gsa'
-        self.mat_ = '.mat'
+        
 
         if self.in_path == '':
             X = self._unicode_to_ascii(X)
@@ -201,7 +202,7 @@ class LongestCommonSubsequence(BaseEstimator):
         """
         return self.fit(X).predict(X)
 
-    def plot_LCS(self):
+    def plot_LCS(self, color, name):
         """"Plots the longest common subsequence curve as (number of accounts, sequence length)
 
         Attributes
@@ -213,18 +214,27 @@ class LongestCommonSubsequence(BaseEstimator):
         -------
         self : returns an instance of self.
         """
-        plt.xlabel('# of accounts')
-        plt.ylabel('LCS')
+        plt.xlabel('Number of accounts', size=13)
+        plt.ylabel('LCS', size=13)
+        
         if self.verbosity > Verbosity.MEMORY_ONLY and not hasattr(self, 'lcs_'):
             self.lcs_ = pd.read_csv(self.out_path + self.mat_, usecols=['length', 'num_texts']) \
                 .drop_duplicates().reset_index().drop(['index'], axis=1)
-        plt.plot(self.lcs_.num_texts, self.lcs_.length, marker='x')
+        plt.scatter(self.lcs_.num_texts, self.lcs_.length, marker='.', color=color)
         if hasattr(self, 'cut_'):
             plt.plot([self.cut_, self.cut_], [0, max(self.lcs_.length)], linestyle='--')
-        #plt.show()
+        # Show the major grid lines with dark grey lines
+        plt.grid(b=True, which='major', color='#666666', linestyle='-.')
+        # Show the minor grid lines with very faint and almost transparent grey lines
+        plt.minorticks_on()
+        plt.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.15)
+        
+        plt.title(name, size=15)
+        plt.savefig(name + '.svg')
+        plt.show()
         return plt
 
-    def plot_LCS_log(self):
+    def plot_LCS_log(self, color, name):
         """"Plots the longest common subsequence curve as (log(number of accounts), log(sequence length))
 
         Attributes
@@ -236,16 +246,48 @@ class LongestCommonSubsequence(BaseEstimator):
         -------
         self : returns an instance of self.
         """
-        plt.xlabel('log(# of accounts)')
-        plt.ylabel('log(LCS)')
+        plt.xlabel('log(Number of accounts)', size=13)
+        plt.ylabel('log(LCS)', size=13)
         if self.verbosity > Verbosity.MEMORY_ONLY and not hasattr(self, 'lcs_'):
             self.lcs_ = pd.read_csv(self.out_path + self.mat_, usecols=['length', 'num_texts']) \
                 .drop_duplicates().reset_index().drop(['index'], axis=1)
-        plt.loglog(self.lcs_.num_texts, self.lcs_.length, marker='x')
+        plt.loglog(self.lcs_.num_texts, self.lcs_.length, marker='.', color=color)
         if hasattr(self, 'cut_'):
             plt.plot([self.cut_, self.cut_], [0, max(self.lcs_.length)], linestyle='--')
-        # plt.show()
+        plt.title(name, size=15)
+        # Show the major grid lines with dark grey lines
+        plt.grid(b=True, which='major', color='#666666', linestyle='-.')
+        # Show the minor grid lines with very faint and almost transparent grey lines
+        plt.minorticks_on()
+        plt.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.15)
+        
+        plt.savefig(name + '_log.svg')
+        plt.show()
         return plt
+
+    def inset_plot(self, color, name):
+        fig, ax1 = plt.subplots()
+        left, bottom, width, height = [0.64, 0.619, 0.25, 0.25]
+        ax2 = fig.add_axes([left, bottom, width, height])
+        # Show the major grid lines with dark grey lines
+        ax1.grid(b=True, which='major', color='#666666', linestyle='-.')
+        # Show the minor grid lines with very faint and almost transparent grey lines
+        ax1.minorticks_on()
+        ax1.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.15)
+        ax1.set_xlabel('Number of accounts', size=13)
+        ax1.set_ylabel('LCS', size=13)
+        ax1.scatter(self.lcs_.num_texts, self.lcs_.length, marker='.', color=color)
+        if hasattr(self, 'cut_'):
+            ax1.plot([self.cut_, self.cut_], [0, max(self.lcs_.length)], linestyle='--')
+        ax1.set_title(name, size=15)
+
+        # log plot
+        ax2.loglog(self.lcs_.num_texts, self.lcs_.length, color=color)
+        if hasattr(self, 'cut_'):
+            ax2.plot([self.cut_, self.cut_], [0, max(self.lcs_.length)], linestyle='--')
+        plt.savefig(name + '_inset.svg')
+        plt.show()
+
 
     def _decision_function(self, X):
         ''' Finds the first relative maximum on the smoothed LCS vector'''
